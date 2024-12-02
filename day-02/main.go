@@ -2,10 +2,9 @@ package main
 
 import (
 	"day02/aocclient"
-	"math"
-
 	"fmt"
 	"log"
+	"math"
 	"sync"
 )
 
@@ -20,6 +19,10 @@ func main() {
 	solution1 := part1Solution(reports)
 
 	fmt.Println("Part 1 solution:", solution1)
+
+	solution2 := part2Solution(reports)
+
+	fmt.Println("Part 2 solution:", solution2)
 }
 
 func part1Solution(reports [][]int) int {
@@ -32,6 +35,32 @@ func part1Solution(reports [][]int) int {
 		go func(i int) {
 			defer wg.Done()
 			resultsCh <- isSafeReport(reports[i])
+		}(i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultsCh)
+	}()
+
+	for result := range resultsCh {
+		if result {
+			count++
+		}
+	}
+	return count
+}
+
+func part2Solution(reports [][]int) int {
+	count := 0
+	resultsCh := make(chan bool)
+	wg := &sync.WaitGroup{}
+
+	for i := range reports {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			resultsCh <- isSafeReportWithTolerance(reports[i])
 		}(i)
 	}
 
@@ -70,4 +99,22 @@ func isSafeReport(report []int) bool {
 	}
 
 	return true
+}
+
+func isSafeReportWithTolerance(report []int) bool {
+
+	if isSafeReport(report) {
+		return true
+	}
+
+	for i := 0; i < len(report); i++ {
+
+		newReport := append([]int(nil), report[:i]...)
+		newReport = append(newReport, report[i+1:]...)
+
+		if isSafeReport(newReport) {
+			return true
+		}
+	}
+	return false
 }
